@@ -1,0 +1,45 @@
+﻿@page "/blog"
+@using Newtonsoft.Json
+@using Blogger.Data
+
+<div class="d-flex flex-row gap-2">
+<button @onclick="LoadPosts" class="btn btn-primary">Load</button>
+
+@if (_allPosts.Any())
+{
+        <select @onchange="OnSelectChange">
+        <option value="0">All</option>
+        @foreach (var userId in _allPosts.Select(a => a.UserId).Distinct())
+        {
+                <option value="@userId">User @userId.ToString()</option>
+        }
+    </select>
+}
+</div>
+
+@foreach (var post in _allPosts.Where(a=>!a.Hide && (_filterId == 0 || a.UserId == _filterId)))
+{
+    <BlogPost Post="post" HideClicked="Hide"></BlogPost>
+}
+
+@code {
+
+    private Post[] _allPosts = Array.Empty<Post>();
+
+    public async Task LoadPosts()
+    {
+        using HttpClient client = new HttpClient();
+        var response = await client.GetStringAsync("https://jsonplaceholder.typicode.com/posts");
+        _allPosts = JsonConvert.DeserializeObject<Post[]>(response);
+    }
+
+    private void Hide(int id)
+    {
+        var index = Array.FindIndex(_allPosts, a => a.Id == id);
+        _allPosts[index] = _allPosts[index] with{ Hide = true};
+    }
+
+    private int _filterId = 0;
+    private void OnSelectChange(ChangeEventArgs e) => _filterId = int.Parse(e.Value.ToString());
+
+}
